@@ -15,6 +15,7 @@ import org.xml.sax.ContentHandler;
 import org.xml.sax.InputSource;
 import org.xml.sax.XMLReader;
 
+import java.io.File;
 import java.io.InputStream;
 
 @Service
@@ -25,33 +26,47 @@ public class BulkCustomerService {
 
     @Transactional
     public void processBulkExcelUpload(MultipartFile file) {
-        try (InputStream inputStream = file.getInputStream();
-             OPCPackage pkg = OPCPackage.open(inputStream)) {
+        File tempFile = null;
+        try {
+            // Disable POI zip bomb protection for extremely large files
+            org.apache.poi.openxml4j.util.ZipSecureFile.setMinInflateRatio(0);
+            
+            // Transfer MultipartFile to a physical temp file to prevent loading the entire stream into memory
+            tempFile = File.createTempFile("bulk-upload-", ".xlsx");
+            file.transferTo(tempFile);
 
-            // Initialize the SAX reader for the massive Excel file
-            XSSFReader xssfReader = new XSSFReader(pkg);
-            StylesTable styles = xssfReader.getStylesTable();
-            ReadOnlySharedStringsTable strings = new ReadOnlySharedStringsTable(pkg);
+            try (OPCPackage pkg = OPCPackage.open(tempFile, org.apache.poi.openxml4j.opc.PackageAccess.READ)) {
 
-            // Initialize our custom row handler
-            CustomerSheetHandler sheetHandler = new CustomerSheetHandler(jdbcTemplate);
+                // Initialize the SAX reader for the massive Excel file
+                XSSFReader xssfReader = new XSSFReader(pkg);
+                StylesTable styles = xssfReader.getStylesTable();
+                ReadOnlySharedStringsTable strings = new ReadOnlySharedStringsTable(pkg);
 
-            // Set up the XML parser to use the handler
-            XMLReader parser = XMLHelper.newXMLReader();
-            ContentHandler handler = new XSSFSheetXMLHandler(styles, strings, sheetHandler, false);
-            parser.setContentHandler(handler);
+                // Initialize our custom row handler
+                CustomerSheetHandler sheetHandler = new CustomerSheetHandler(jdbcTemplate);
 
-            // Read the first sheet
-            try (InputStream sheet = xssfReader.getSheetsData().next()) {
-                InputSource sheetSource = new InputSource(sheet);
-                parser.parse(sheetSource);
+                // Set up the XML parser to use the handler
+                XMLReader parser = XMLHelper.newXMLReader();
+                ContentHandler handler = new XSSFSheetXMLHandler(styles, strings, sheetHandler, false);
+                parser.setContentHandler(handler);
+
+                // Read the first sheet
+                try (InputStream sheet = xssfReader.getSheetsData().next()) {
+                    InputSource sheetSource = new InputSource(sheet);
+                    parser.parse(sheetSource);
+                }
+
+                // Insert any leftover records that didn't reach the 5,000 threshold
+                sheetHandler.flushRemaining();
             }
-
-            // Insert any leftover records that didn't reach the 5,000 threshold
-            sheetHandler.flushRemaining();
 
         } catch (Exception e) {
             throw new RuntimeException("Failed to process Excel file", e);
+        } finally {
+            // Always clean up the temporary file
+            if (tempFile != null && tempFile.exists()) {
+                tempFile.delete();
+            }
         }
     }
 }
