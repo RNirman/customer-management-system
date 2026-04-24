@@ -1,12 +1,15 @@
 import { useState, useEffect } from 'react';
 import apiClient from '../api/apiClient';
+import CustomerDetailsModal from './CustomerDetailsModal'; // NEW IMPORT
 
-export default function CustomerTable({ refreshTrigger }) {
+export default function CustomerTable({ refreshTrigger, onEditCustomer }) {
     const [customers, setCustomers] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+    
+    // NEW: State to track which customer to show in the modal
+    const [viewingCustomer, setViewingCustomer] = useState(null);
 
-    // Fetch customers whenever the component mounts or the refreshTrigger changes
     useEffect(() => {
         fetchCustomers();
     }, [refreshTrigger]);
@@ -14,14 +17,24 @@ export default function CustomerTable({ refreshTrigger }) {
     const fetchCustomers = async () => {
         try {
             setLoading(true);
-            const response = await apiClient.get(''); // Hits /api/customers
+            const response = await apiClient.get(''); 
             setCustomers(response.data);
             setError('');
         } catch (err) {
             setError('Failed to load customers.');
-            console.error(err);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleDelete = async (id) => {
+        if (window.confirm("Are you sure you want to delete this customer? This cannot be undone.")) {
+            try {
+                await apiClient.delete(`/${id}`);
+                fetchCustomers();
+            } catch (err) {
+                alert("Failed to delete customer.");
+            }
         }
     };
 
@@ -63,9 +76,27 @@ export default function CustomerTable({ refreshTrigger }) {
                                     <td className="px-6 py-4">{customer.dob}</td>
                                     <td className="px-6 py-4">{customer.nic}</td>
                                     <td className="px-6 py-4 text-right space-x-3">
-                                        {/* We will wire these buttons up next! */}
-                                        <button className="font-medium text-blue-400 hover:text-blue-300">Edit</button>
-                                        <button className="font-medium text-red-400 hover:text-red-300">Delete</button>
+                                        
+                                        {/* NEW VIEW BUTTON */}
+                                        <button 
+                                            onClick={() => setViewingCustomer(customer)}
+                                            className="font-medium text-emerald-400 hover:text-emerald-300"
+                                        >
+                                            View
+                                        </button>
+
+                                        <button 
+                                            onClick={() => onEditCustomer(customer)}
+                                            className="font-medium text-amber-400 hover:text-amber-300"
+                                        >
+                                            Edit
+                                        </button>
+                                        <button 
+                                            onClick={() => handleDelete(customer.id)}
+                                            className="font-medium text-red-400 hover:text-red-300"
+                                        >
+                                            Delete
+                                        </button>
                                     </td>
                                 </tr>
                             ))
@@ -73,6 +104,14 @@ export default function CustomerTable({ refreshTrigger }) {
                     </tbody>
                 </table>
             </div>
+
+            {/* NEW MODAL RENDER */}
+            {viewingCustomer && (
+                <CustomerDetailsModal 
+                    customer={viewingCustomer} 
+                    onClose={() => setViewingCustomer(null)} 
+                />
+            )}
         </div>
     );
 }
