@@ -11,7 +11,6 @@ function App() {
     setRefreshCount(prev => prev + 1);
   };
 
-  // This single function refreshes the table whenever an upload OR a form submission succeeds
   const handleDataChanged = () => {
     setRefreshCount(prev => prev + 1);
   };
@@ -20,7 +19,7 @@ function App() {
     <div className="min-h-screen bg-gray-900 flex flex-col items-center py-12 px-6">
       <div className="max-w-5xl w-full mb-8">
         <h1 className="text-3xl font-bold text-white mb-2">Customer Management System</h1>
-        <p className="text-gray-400">Manage individuals, family networks, and bulk imports.</p>
+        <p className="text-gray-400">Manage customers and bulk imports.</p>
       </div>
 
       <div className="max-w-5xl w-full flex flex-col md:flex-row gap-6 mb-8">
