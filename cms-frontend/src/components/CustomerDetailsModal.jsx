@@ -1,8 +1,6 @@
 export default function CustomerDetailsModal({ customer, onClose }) {
     if (!customer) return null;
 
-    console.log('Viewing Customer:', customer); // Debugging log
-
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-60 backdrop-blur-sm">
             <div className="bg-gray-800 border border-gray-700 rounded-xl shadow-2xl w-full max-w-md overflow-hidden animate-fadeIn">
@@ -20,7 +18,7 @@ export default function CustomerDetailsModal({ customer, onClose }) {
                     </button>
                 </div>
 
-                {/* Body - Added Max Height and Scrolling for longer lists */}
+                {/* Body */}
                 <div className="p-6 space-y-5 max-h-[70vh] overflow-y-auto custom-scrollbar">
                     
                     {/* Basic Info Grid */}

@@ -15,22 +15,19 @@ public class CustomerService {
     @Autowired
     private CustomerRepository customerRepository;
 
-    // Create a customer
     public Customer createCustomer(Customer customer) {
         return customerRepository.save(customer);
     }
 
-    // View customers in table view (All)
     public List<Customer> getAllCustomers() {
-        return customerRepository.findAll();
+        // Fetches only the 100 newest records to prevent OutOfMemory crashes on large datasets
+        return customerRepository.findTop100ByOrderByIdDesc();
     }
 
-    // View a specific customer
     public Optional<Customer> getCustomerById(Long id) {
         return customerRepository.findById(id);
     }
 
-    // Update a customer
     @Transactional
     public Customer updateCustomer(Long id, Customer updatedData) {
         return customerRepository.findById(id).map(existingCustomer -> {
@@ -38,19 +35,16 @@ public class CustomerService {
             existingCustomer.setDob(updatedData.getDob());
             existingCustomer.setNic(updatedData.getNic());
 
-            // Update Mobile Numbers
             existingCustomer.getMobileNumbers().clear();
             if (updatedData.getMobileNumbers() != null) {
                 existingCustomer.getMobileNumbers().addAll(updatedData.getMobileNumbers());
             }
 
-            // Update Addresses
             existingCustomer.getAddresses().clear();
             if (updatedData.getAddresses() != null) {
                 existingCustomer.getAddresses().addAll(updatedData.getAddresses());
             }
 
-            // Update Family Members
             existingCustomer.getFamilyMembers().clear();
             if (updatedData.getFamilyMembers() != null) {
                 existingCustomer.getFamilyMembers().addAll(updatedData.getFamilyMembers());
@@ -60,7 +54,6 @@ public class CustomerService {
         }).orElseThrow(() -> new RuntimeException("Customer not found with id: " + id));
     }
 
-    // Delete a customer
     public void deleteCustomer(Long id) {
         customerRepository.deleteById(id);
     }

@@ -12,7 +12,6 @@ public class CustomerSheetHandler implements SheetContentsHandler {
     private final List<Object[]> batchArgs = new ArrayList<>();
     private static final int BATCH_SIZE = 5000;
 
-    // Temporary variables to hold current row data
     private String currentName;
     private String currentDob;
     private String currentNic;
@@ -24,7 +23,6 @@ public class CustomerSheetHandler implements SheetContentsHandler {
 
     @Override
     public void startRow(int rowNum) {
-        // Reset variables at the start of each row
         currentName = null;
         currentDob = null;
         currentNic = null;
@@ -37,8 +35,10 @@ public class CustomerSheetHandler implements SheetContentsHandler {
     public void endRow(int rowNum) {
         if (isHeaderRow) return;
 
-        // Add the extracted row data to our batch list
-        // Assuming columns: A = Name, B = DOB, C = NIC
+        if (currentName == null || currentName.trim().isEmpty()) {
+            return;
+        }
+
         batchArgs.add(new Object[]{currentName, currentDob, currentNic});
 
         // If batch is full, execute the insert and clear the list to save memory
@@ -51,7 +51,6 @@ public class CustomerSheetHandler implements SheetContentsHandler {
     public void cell(String cellReference, String formattedValue, XSSFComment comment) {
         if (isHeaderRow) return;
 
-        // Check which column this cell belongs to (A, B, or C)
         if (cellReference.startsWith("A")) {
             currentName = formattedValue;
         } else if (cellReference.startsWith("B")) {
@@ -66,7 +65,6 @@ public class CustomerSheetHandler implements SheetContentsHandler {
         // Not needed for this assignment
     }
 
-    // Method to execute the remaining batch when the file ends
     public void flushRemaining() {
         if (!batchArgs.isEmpty()) {
             executeBatchInsert();
@@ -76,9 +74,7 @@ public class CustomerSheetHandler implements SheetContentsHandler {
     private void executeBatchInsert() {
         String sql = "INSERT INTO customer (name, dob, nic) VALUES (?, ?, ?)";
 
-        // Wrap batchArgs in a new ArrayList to pass a copy, protecting it from the immediate .clear()
         jdbcTemplate.batchUpdate(sql, new java.util.ArrayList<>(batchArgs));
-
-        batchArgs.clear(); // Free up memory immediately
+        batchArgs.clear();
     }
 }

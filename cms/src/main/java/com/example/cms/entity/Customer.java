@@ -16,22 +16,22 @@ public class Customer {
     private Long id;
 
     @Column(nullable = false)
-    private String name; // [cite: 14]
+    private String name;
 
     @Column(nullable = false)
-    private LocalDate dob; // [cite: 15]
+    private LocalDate dob;
 
     @Column(nullable = false, unique = true)
-    private String nic; // [cite: 16]
+    private String nic;
 
     @ElementCollection
     @CollectionTable(name = "customer_mobile", joinColumns = @JoinColumn(name = "customer_id"))
     @Column(name = "mobile_number")
-    private List<String> mobileNumbers; // [cite: 17]
+    private List<String> mobileNumbers;
 
     @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
     @JoinColumn(name = "customer_id")
-    private List<Address> addresses; // [cite: 19]
+    private List<Address> addresses;
 
     @ManyToMany
     @JoinTable(
@@ -39,10 +39,8 @@ public class Customer {
             joinColumns = @JoinColumn(name = "customer_id"),
             inverseJoinColumns = @JoinColumn(name = "family_member_id")
     )
-    @JsonIgnoreProperties("familyMembers") // Stops the infinite JSON loop
+    @JsonIgnoreProperties("familyMembers")
     private Set<Customer> familyMembers;
-
-    // Getters and Setters...
 
     public Long getId() {
         return id;

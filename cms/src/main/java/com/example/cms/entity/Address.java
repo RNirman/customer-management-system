@@ -11,16 +11,15 @@ public class Address {
     private Long id;
 
     @Column(name = "address_line_1")
-    private String addressLine1; // [cite: 20]
+    private String addressLine1;
 
     @Column(name = "address_line_2")
-    private String addressLine2; // [cite: 21]
+    private String addressLine2;
 
     @ManyToOne
     @JoinColumn(name = "city_id")
-    private City city; // Links to the master data table
+    private City city;
 
-    // Getters and Setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
     public String getAddressLine1() { return addressLine1; }

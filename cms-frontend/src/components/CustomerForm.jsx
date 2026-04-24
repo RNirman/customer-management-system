@@ -14,7 +14,6 @@ export default function CustomerForm({ onCustomerSaved, editingCustomer, setEdit
                 name: editingCustomer.name,
                 dob: editingCustomer.dob,
                 nic: editingCustomer.nic,
-                // Ensure we safely copy the array, or default to an empty one
                 mobileNumbers: editingCustomer.mobileNumbers ? [...editingCustomer.mobileNumbers] : []
             });
             setMessage('');
@@ -27,9 +26,8 @@ export default function CustomerForm({ onCustomerSaved, editingCustomer, setEdit
 
     const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
 
-    // --- NEW: Mobile Number Handlers ---
     const handleAddMobile = (e) => {
-        e.preventDefault(); // Stop form submission if they press enter
+        e.preventDefault();
         if (currentMobile.trim() !== '') {
             setFormData({
                 ...formData,
@@ -45,7 +43,6 @@ export default function CustomerForm({ onCustomerSaved, editingCustomer, setEdit
             mobileNumbers: formData.mobileNumbers.filter((_, index) => index !== indexToRemove)
         });
     };
-    // -----------------------------------
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -78,7 +75,7 @@ export default function CustomerForm({ onCustomerSaved, editingCustomer, setEdit
     };
 
     return (
-        <div className="bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-700 w-full max-w-md">
+        <div className="bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-700 w-full flex-1">
             <div className="flex justify-between items-center mb-4">
                 <h2 className="text-xl font-semibold text-white">
                     {editingCustomer ? 'Update Customer' : 'Add New Customer'}
@@ -104,7 +101,6 @@ export default function CustomerForm({ onCustomerSaved, editingCustomer, setEdit
                     <input type="text" name="nic" value={formData.nic} onChange={handleChange} required className="w-full bg-gray-700 border border-gray-600 rounded-md px-3 py-2 text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" placeholder="199012345678" />
                 </div>
 
-                {/* --- NEW: Mobile Numbers UI --- */}
                 <div className="pt-2 border-t border-gray-700 mt-4">
                     <label className="block text-sm font-medium text-gray-300 mb-1">Mobile Numbers (Optional)</label>
                     <div className="flex space-x-2 mb-2">
@@ -125,7 +121,6 @@ export default function CustomerForm({ onCustomerSaved, editingCustomer, setEdit
                         </button>
                     </div>
 
-                    {/* Display the added numbers as removable pills */}
                     {formData.mobileNumbers.length > 0 && (
                         <div className="flex flex-wrap gap-2 mt-2">
                             {formData.mobileNumbers.map((num, index) => (
@@ -143,7 +138,6 @@ export default function CustomerForm({ onCustomerSaved, editingCustomer, setEdit
                         </div>
                     )}
                 </div>
-                {/* ----------------------------- */}
 
                 <button type="submit" disabled={status === 'loading'} className={`w-full py-2 px-4 rounded-md font-medium text-white transition-colors mt-6 ${status === 'loading' ? 'bg-blue-800 cursor-not-allowed' : (editingCustomer ? 'bg-amber-600 hover:bg-amber-500' : 'bg-blue-600 hover:bg-blue-500')}`}>
                     {status === 'loading' ? 'Saving...' : (editingCustomer ? 'Update Customer' : 'Save Customer')}

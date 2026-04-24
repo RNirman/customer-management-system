@@ -13,7 +13,6 @@ public class Country {
     @Column(nullable = false, unique = true)
     private String name;
 
-    // Getters and Setters
     public Integer getId() { return id; }
     public void setId(Integer id) { this.id = id; }
     public String getName() { return name; }

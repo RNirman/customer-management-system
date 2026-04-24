@@ -28,26 +28,26 @@ public class BulkCustomerService {
         try (InputStream inputStream = file.getInputStream();
              OPCPackage pkg = OPCPackage.open(inputStream)) {
 
-            // 1. Initialize the SAX reader for the massive Excel file
+            // Initialize the SAX reader for the massive Excel file
             XSSFReader xssfReader = new XSSFReader(pkg);
             StylesTable styles = xssfReader.getStylesTable();
             ReadOnlySharedStringsTable strings = new ReadOnlySharedStringsTable(pkg);
 
-            // 2. Initialize our custom row handler
+            // Initialize our custom row handler
             CustomerSheetHandler sheetHandler = new CustomerSheetHandler(jdbcTemplate);
 
-            // 3. Set up the XML parser to use our handler
+            // Set up the XML parser to use the handler
             XMLReader parser = XMLHelper.newXMLReader();
             ContentHandler handler = new XSSFSheetXMLHandler(styles, strings, sheetHandler, false);
             parser.setContentHandler(handler);
 
-            // 4. Read the first sheet (assuming data is on Sheet 1)
+            // Read the first sheet
             try (InputStream sheet = xssfReader.getSheetsData().next()) {
                 InputSource sheetSource = new InputSource(sheet);
                 parser.parse(sheetSource);
             }
 
-            // 5. Insert any leftover records that didn't reach the 5,000 threshold
+            // Insert any leftover records that didn't reach the 5,000 threshold
             sheetHandler.flushRemaining();
 
         } catch (Exception e) {

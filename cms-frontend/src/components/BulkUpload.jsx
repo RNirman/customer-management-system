@@ -3,7 +3,7 @@ import apiClient from '../api/apiClient';
 
 export default function BulkUpload({ onUploadSuccess }) {
     const [file, setFile] = useState(null);
-    const [status, setStatus] = useState('idle'); // idle, loading, success, error
+    const [status, setStatus] = useState('idle');
     const [message, setMessage] = useState('');
 
     const handleFileChange = (e) => {
@@ -26,15 +26,14 @@ export default function BulkUpload({ onUploadSuccess }) {
         formData.append('file', file);
 
         try {
-            // Using multipart/form-data specifically for file uploads
             const response = await apiClient.post('/upload', formData, {
                 headers: { 'Content-Type': 'multipart/form-data' },
             });
             
             setStatus('success');
             setMessage(response.data);
-            setFile(null); // Reset the file input
-            if (onUploadSuccess) onUploadSuccess(); // Refresh the table if provided
+            setFile(null);
+            if (onUploadSuccess) onUploadSuccess();
             
         } catch (error) {
             setStatus('error');
@@ -43,7 +42,7 @@ export default function BulkUpload({ onUploadSuccess }) {
     };
 
     return (
-        <div className="bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-700 w-full max-w-md">
+        <div className="bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-700 w-full flex-1">
             <h2 className="text-xl font-semibold text-white mb-4">Bulk Customer Upload</h2>
             
             <div className="flex flex-col space-y-4">
@@ -70,7 +69,6 @@ export default function BulkUpload({ onUploadSuccess }) {
                     {status === 'loading' ? 'Processing File...' : 'Upload Data'}
                 </button>
 
-                {/* Status Messages */}
                 {status === 'error' && (
                     <div className="text-red-400 text-sm p-3 bg-red-900/30 rounded-md">
                         {message}
