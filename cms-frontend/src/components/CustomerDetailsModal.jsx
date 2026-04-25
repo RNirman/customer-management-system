@@ -25,7 +25,7 @@ export default function CustomerDetailsModal({ customer, onClose }) {
                     <div className="grid grid-cols-2 gap-4">
                         <div>
                             <p className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-1">Database ID</p>
-                            <p className="text-white font-semibold">#{customer.id}</p>
+                            <p className="text-white font-semibold">{customer.id}</p>
                         </div>
                         <div>
                             <p className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-1">Date of Birth</p>

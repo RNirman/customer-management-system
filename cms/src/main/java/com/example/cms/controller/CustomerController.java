@@ -9,10 +9,15 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.Map;
+import java.util.HashMap;
+import java.util.UUID;
+import com.example.cms.dto.UploadProgress;
+import org.springframework.data.domain.Page;
 
 @RestController
 @RequestMapping("/api/customers")
-@CrossOrigin(origins = "*") // Crucial for allowing your React app to connect
+@CrossOrigin(origins = "*")
 public class CustomerController {
 
     @Autowired
@@ -21,25 +26,37 @@ public class CustomerController {
     @Autowired
     private CustomerService customerService;
 
-    // ==========================================
-    // 1. Bulk Upload Endpoint (Already completed)
-    // ==========================================
     @PostMapping("/upload")
-    public ResponseEntity<String> uploadBulkCustomers(@RequestParam("file") MultipartFile file) {
+    public ResponseEntity<?> uploadBulkCustomers(@RequestParam("file") MultipartFile file) {
         if (file.isEmpty()) {
             return ResponseEntity.badRequest().body("Please upload a valid Excel file.");
         }
         try {
-            bulkCustomerService.processBulkExcelUpload(file);
-            return ResponseEntity.ok("Bulk upload processed successfully.");
+            String jobId = UUID.randomUUID().toString();
+            
+            java.io.File tempFile = java.io.File.createTempFile("bulk-upload-", ".xlsx");
+            file.transferTo(tempFile);
+            
+            bulkCustomerService.processBulkExcelUpload(tempFile, jobId);
+            
+            Map<String, String> response = new HashMap<>();
+            response.put("jobId", jobId);
+            response.put("message", "Bulk upload started.");
+            
+            return ResponseEntity.accepted().body(response);
         } catch (Exception e) {
-            return ResponseEntity.internalServerError().body("Error processing file: " + e.getMessage());
+            return ResponseEntity.internalServerError().body("Error starting file processing: " + e.getMessage());
         }
     }
 
-    // ==========================================
-    // 2. Standard CRUD Endpoints
-    // ==========================================
+    @GetMapping("/upload/status/{jobId}")
+    public ResponseEntity<?> getUploadStatus(@PathVariable String jobId) {
+        UploadProgress progress = bulkCustomerService.getJobStatus(jobId);
+        if (progress == null) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(progress);
+    }
 
     // Create a new customer
     @PostMapping
@@ -48,10 +65,14 @@ public class CustomerController {
         return ResponseEntity.ok(savedCustomer);
     }
 
-    // View all customers (For the React table view)
+    // View all customers
     @GetMapping
-    public ResponseEntity<List<Customer>> getAllCustomers() {
-        List<Customer> customers = customerService.getAllCustomers();
+    public ResponseEntity<Page<Customer>> getAllCustomers(
+            @RequestParam(required = false) String search,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        Page<Customer> customers = customerService.getCustomers(search, page, size);
         return ResponseEntity.ok(customers);
     }
 

@@ -30,7 +30,7 @@ class CustomerControllerTest {
     private BulkCustomerService bulkCustomerService;
 
     @Test
-    void testGetAllCustomers_Returns200AndJsonArray() throws Exception {
+    void testGetAllCustomers_Returns200AndPage() throws Exception {
         Customer c1 = new Customer();
         c1.setId(1L);
         c1.setName("Alice Fernando");
@@ -39,15 +39,16 @@ class CustomerControllerTest {
         c2.setId(2L);
         c2.setName("Bob Silva");
 
-        Mockito.when(customerService.getAllCustomers()).thenReturn(Arrays.asList(c1, c2));
+        org.springframework.data.domain.Page<Customer> page = new org.springframework.data.domain.PageImpl<>(Arrays.asList(c1, c2));
+        Mockito.when(customerService.getCustomers(null, 0, 10)).thenReturn(page);
 
         // Act & Assert: Fire a GET request and verify the JSON response
         mockMvc.perform(get("/api/customers")
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk()) // Expect HTTP 200 OK
-                .andExpect(jsonPath("$.size()").value(2))
-                .andExpect(jsonPath("$[0].name").value("Alice Fernando"))
-                .andExpect(jsonPath("$[1].name").value("Bob Silva"));
+                .andExpect(jsonPath("$.content.size()").value(2))
+                .andExpect(jsonPath("$.content[0].name").value("Alice Fernando"))
+                .andExpect(jsonPath("$.content[1].name").value("Bob Silva"));
     }
 
     @Test

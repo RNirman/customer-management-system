@@ -5,6 +5,7 @@ import org.apache.poi.xssf.usermodel.XSSFComment;
 import org.springframework.jdbc.core.JdbcTemplate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
 
 public class CustomerSheetHandler implements SheetContentsHandler {
 
@@ -16,9 +17,11 @@ public class CustomerSheetHandler implements SheetContentsHandler {
     private String currentDob;
     private String currentNic;
     private boolean isHeaderRow = true;
+    private final Consumer<Integer> progressCallback;
 
-    public CustomerSheetHandler(JdbcTemplate jdbcTemplate) {
+    public CustomerSheetHandler(JdbcTemplate jdbcTemplate, Consumer<Integer> progressCallback) {
         this.jdbcTemplate = jdbcTemplate;
+        this.progressCallback = progressCallback;
     }
 
     @Override
@@ -62,7 +65,7 @@ public class CustomerSheetHandler implements SheetContentsHandler {
 
     @Override
     public void headerFooter(String text, boolean isHeader, String tagName) {
-        // Not needed for this assignment
+        
     }
 
     public void flushRemaining() {
@@ -72,9 +75,14 @@ public class CustomerSheetHandler implements SheetContentsHandler {
     }
 
     private void executeBatchInsert() {
-        String sql = "INSERT INTO customer (name, dob, nic) VALUES (?, ?, ?)";
+        String sql = "INSERT INTO customer (name, dob, nic) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE name=VALUES(name), dob=VALUES(dob)";
 
         jdbcTemplate.batchUpdate(sql, new java.util.ArrayList<>(batchArgs));
+        int count = batchArgs.size();
         batchArgs.clear();
+        
+        if (progressCallback != null) {
+            progressCallback.accept(count);
+        }
     }
 }

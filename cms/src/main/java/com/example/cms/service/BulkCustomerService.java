@@ -10,13 +10,15 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.multipart.MultipartFile;
 import org.xml.sax.ContentHandler;
 import org.xml.sax.InputSource;
 import org.xml.sax.XMLReader;
 
 import java.io.File;
 import java.io.InputStream;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import com.example.cms.dto.UploadProgress;
 
 @Service
 public class BulkCustomerService {
@@ -24,16 +26,18 @@ public class BulkCustomerService {
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
-    @Transactional
-    public void processBulkExcelUpload(MultipartFile file) {
-        File tempFile = null;
+    private final Map<String, UploadProgress> jobStatuses = new ConcurrentHashMap<>();
+
+    public UploadProgress getJobStatus(String jobId) {
+        return jobStatuses.get(jobId);
+    }
+
+    @org.springframework.scheduling.annotation.Async
+    public void processBulkExcelUpload(File tempFile, String jobId) {
+        jobStatuses.put(jobId, new UploadProgress("PROCESSING", 0));
         try {
             // Disable POI zip bomb protection for extremely large files
             org.apache.poi.openxml4j.util.ZipSecureFile.setMinInflateRatio(0);
-            
-            // Transfer MultipartFile to a physical temp file to prevent loading the entire stream into memory
-            tempFile = File.createTempFile("bulk-upload-", ".xlsx");
-            file.transferTo(tempFile);
 
             try (OPCPackage pkg = OPCPackage.open(tempFile, org.apache.poi.openxml4j.opc.PackageAccess.READ)) {
 
@@ -42,8 +46,13 @@ public class BulkCustomerService {
                 StylesTable styles = xssfReader.getStylesTable();
                 ReadOnlySharedStringsTable strings = new ReadOnlySharedStringsTable(pkg);
 
-                // Initialize our custom row handler
-                CustomerSheetHandler sheetHandler = new CustomerSheetHandler(jdbcTemplate);
+                // Initialize our custom row handler with a callback to update progress
+                CustomerSheetHandler sheetHandler = new CustomerSheetHandler(jdbcTemplate, (count) -> {
+                    UploadProgress progress = jobStatuses.get(jobId);
+                    if (progress != null) {
+                        progress.setProcessedRows(progress.getProcessedRows() + count);
+                    }
+                });
 
                 // Set up the XML parser to use the handler
                 XMLReader parser = XMLHelper.newXMLReader();
@@ -59,8 +68,15 @@ public class BulkCustomerService {
                 // Insert any leftover records that didn't reach the 5,000 threshold
                 sheetHandler.flushRemaining();
             }
+            
+            jobStatuses.get(jobId).setStatus("COMPLETED");
 
         } catch (Exception e) {
+            UploadProgress progress = jobStatuses.get(jobId);
+            if (progress != null) {
+                progress.setStatus("FAILED");
+                progress.setErrorMessage(e.getMessage());
+            }
             throw new RuntimeException("Failed to process Excel file", e);
         } finally {
             // Always clean up the temporary file

@@ -61,16 +61,14 @@ class BulkCustomerServiceTest {
             workbook.write(out);
         }
 
-        // 4. Wrap the raw bytes into a Spring MockMultipartFile
-        MockMultipartFile mockFile = new MockMultipartFile(
-                "file",
-                "test-customers.xlsx",
-                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                out.toByteArray()
-        );
+        // 4. Wrap the raw bytes into a physical Temp File
+        java.io.File tempFile = java.io.File.createTempFile("test-customers", ".xlsx");
+        try (java.io.FileOutputStream fos = new java.io.FileOutputStream(tempFile)) {
+            fos.write(out.toByteArray());
+        }
 
         // 5. Execute our SAX Parser service logic
-        bulkCustomerService.processBulkExcelUpload(mockFile);
+        bulkCustomerService.processBulkExcelUpload(tempFile, "test-job-id");
 
         // 6. Verification & Assertions
         // We capture the exact batch of data the service attempted to send to the database

@@ -6,8 +6,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
 import java.util.Optional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 
 @Service
 public class CustomerService {
@@ -19,9 +21,12 @@ public class CustomerService {
         return customerRepository.save(customer);
     }
 
-    public List<Customer> getAllCustomers() {
-        // Fetches only the 100 newest records to prevent OutOfMemory crashes on large datasets
-        return customerRepository.findTop100ByOrderByIdDesc();
+    public Page<Customer> getCustomers(String search, int page, int size) {
+        PageRequest pageRequest = PageRequest.of(page, size, Sort.by("id").descending());
+        if (search != null && !search.trim().isEmpty()) {
+            return customerRepository.findByNameContainingIgnoreCaseOrNicContainingIgnoreCase(search.trim(), search.trim(), pageRequest);
+        }
+        return customerRepository.findAll(pageRequest);
     }
 
     public Optional<Customer> getCustomerById(Long id) {

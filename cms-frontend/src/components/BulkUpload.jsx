@@ -1,16 +1,44 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import apiClient from '../api/apiClient';
 
 export default function BulkUpload({ onUploadSuccess }) {
     const [file, setFile] = useState(null);
     const [status, setStatus] = useState('idle');
     const [message, setMessage] = useState('');
+    const [processedRows, setProcessedRows] = useState(0);
+    const pollingIntervalRef = useRef(null);
 
     const handleFileChange = (e) => {
         if (e.target.files[0]) {
             setFile(e.target.files[0]);
             setStatus('idle');
             setMessage('');
+            setProcessedRows(0);
+        }
+    };
+
+    const pollStatus = async (jobId) => {
+        try {
+            const response = await apiClient.get(`/upload/status/${jobId}`);
+            const data = response.data;
+            
+            if (data.status === 'PROCESSING') {
+                setProcessedRows(data.processedRows);
+            } else if (data.status === 'COMPLETED') {
+                clearInterval(pollingIntervalRef.current);
+                setStatus('success');
+                setMessage('Bulk upload completed successfully!');
+                setFile(null);
+                setProcessedRows(0);
+                if (onUploadSuccess) onUploadSuccess();
+            } else if (data.status === 'FAILED') {
+                clearInterval(pollingIntervalRef.current);
+                setStatus('error');
+                setMessage(`Upload failed: ${data.errorMessage}`);
+                setProcessedRows(0);
+            }
+        } catch (error) {
+            console.error("Error polling status", error);
         }
     };
 
@@ -22,6 +50,7 @@ export default function BulkUpload({ onUploadSuccess }) {
         }
 
         setStatus('loading');
+        setProcessedRows(0);
         const formData = new FormData();
         formData.append('file', file);
 
@@ -30,10 +59,13 @@ export default function BulkUpload({ onUploadSuccess }) {
                 headers: { 'Content-Type': 'multipart/form-data' },
             });
             
-            setStatus('success');
-            setMessage(response.data);
-            setFile(null);
-            if (onUploadSuccess) onUploadSuccess();
+            setMessage(response.data.message || 'Processing started...');
+            const jobId = response.data.jobId;
+            
+            if (jobId) {
+                // Start polling every 2 seconds
+                pollingIntervalRef.current = setInterval(() => pollStatus(jobId), 2000);
+            }
             
         } catch (error) {
             setStatus('error');
@@ -69,6 +101,11 @@ export default function BulkUpload({ onUploadSuccess }) {
                     {status === 'loading' ? 'Processing File...' : 'Upload Data'}
                 </button>
 
+                {status === 'loading' && processedRows > 0 && (
+                    <div className="text-blue-400 text-sm p-3 bg-blue-900/30 rounded-md">
+                        Progress: Processed {processedRows.toLocaleString()} records...
+                    </div>
+                )}
                 {status === 'error' && (
                     <div className="text-red-400 text-sm p-3 bg-red-900/30 rounded-md">
                         {message}
